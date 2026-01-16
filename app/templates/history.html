@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis History — EngineOp{% endblock %}
+
+{% block extra_head %}
+<style>
+.history-page {
+    padding: 3rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.history-header {
+    margin-bottom: 2.5rem;
+}
+
+.history-header h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.history-header p {
+    color: var(--text-secondary);
+}
+
+/* Analysis List */
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.history-item {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 2rem;
+    transition: all 0.2s ease;
+}
+
+.history-item:hover {
+    border-color: var(--border-hover);
+    transform: translateX(4px);
+}
+
+.history-info {
+    min-width: 0;
+}
+
+.history-url {
+    font-weight: 600;
+    color: var(--text-primary);
+    text-decoration: none;
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 0.375rem;
+    transition: color 0.2s ease;
+}
+
+.history-url:hover {
+    color: var(--seo-color);
+}
+
+.history-meta {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.history-meta svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0.5;
+}
+
+/* Score Badges */
+.history-scores {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.score-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.score-badge.seo {
+    background: var(--seo-bg);
+    color: var(--seo-color);
+}
+
+.score-badge.aeo {
+    background: var(--aeo-bg);
+    color: var(--aeo-color);
+}
+
+.score-badge.geo {
+    background: var(--geo-bg);
+    color: var(--geo-color);
+}
+
+.score-badge-label {
+    font-size: 0.6875rem;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* Actions */
+.history-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.625rem 1rem;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.action-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.action-btn.view {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.action-btn.view:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+}
+
+.action-btn.delete {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.action-btn.delete:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 5rem 2rem;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+}
+
+.empty-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.5rem;
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
+.empty-state h2 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.empty-state a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: var(--accent-gradient);
+    border-radius: var(--radius-md);
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.empty-state a:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25);
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .history-item {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .history-scores {
+        order: -1;
+    }
+
+    .history-actions {
+        justify-content: flex-end;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="history-page">
+    <header class="history-header">
+        <h1>Analysis History</h1>
+        <p>View and manage your previous website analyses</p>
+    </header>
+
+    {% if analyses %}
+    <div class="history-list">
+        {% for analysis in analyses %}
+        <div class="history-item">
+            <div class="history-info">
+                <a href="{{ url_for('analysis.results', analysis_id=analysis.id) }}" class="history-url">
+                    {{ analysis.url }}
+                </a>
+                <div class="history-meta">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    {{ analysis.timestamp.strftime('%B %d, %Y at %H:%M') }}
+                </div>
+            </div>
+
+            <div class="history-scores">
+                <div class="score-badge seo">
+                    <span class="score-badge-label">SEO</span>
+                    {{ analysis.overall_seo_score }}/10
+                </div>
+                <div class="score-badge aeo">
+                    <span class="score-badge-label">AEO</span>
+                    {{ analysis.overall_aeo_score }}/10
+                </div>
+                <div class="score-badge geo">
+                    <span class="score-badge-label">GEO</span>
+                    {{ analysis.overall_geo_score }}/10
+                </div>
+            </div>
+
+            <div class="history-actions">
+                <a href="{{ url_for('analysis.results', analysis_id=analysis.id) }}" class="action-btn view">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    View
+                </a>
+                <form action="{{ url_for('analysis.delete', analysis_id=analysis.id) }}" method="POST" style="display: contents;">
+                    <button type="submit" class="action-btn delete" onclick="return confirm('Delete this analysis?')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                        </svg>
+                        Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <h2>No analyses yet</h2>
+        <p>Start by analyzing your first website to see results here.</p>
+        <a href="{{ url_for('main.home') }}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+            New Analysis
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

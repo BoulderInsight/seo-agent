@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Error — EngineOp{% endblock %}
+
+{% block extra_head %}
+<style>
+.error-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 200px);
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+.error-icon {
+    width: 80px;
+    height: 80px;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.error-icon svg {
+    width: 40px;
+    height: 40px;
+    color: #ef4444;
+}
+
+.error-page h1 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.error-message {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid #ef4444;
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--radius-md);
+    max-width: 500px;
+    margin-bottom: 2rem;
+    text-align: left;
+}
+
+.error-message p {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+}
+
+.error-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.error-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.error-btn.primary {
+    background: var(--accent-gradient);
+    color: white;
+}
+
+.error-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25);
+}
+
+.error-btn.secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.error-btn.secondary:hover {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+}
+
+.error-btn svg {
+    width: 18px;
+    height: 18px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+    </div>
+
+    <h1>Something went wrong</h1>
+
+    <div class="error-message">
+        <p>{{ error }}</p>
+    </div>
+
+    <div class="error-actions">
+        <a href="{{ url_for('main.home') }}" class="error-btn primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+            </svg>
+            Back to Home
+        </a>
+        <a href="{{ url_for('main.history') }}" class="error-btn secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            View History
+        </a>
+    </div>
+</div>
+{% endblock %}

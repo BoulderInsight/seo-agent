@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+
+{% block title %}EngineOp — Analyze Your Website{% endblock %}
+
+{% block extra_head %}
+<style>
+.home-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 180px);
+    padding: 2rem;
+}
+
+/* Hero */
+.hero {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-subtitle {
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+/* Form Card */
+.form-card {
+    width: 100%;
+    max-width: 560px;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 1.75rem;
+    border: 1px solid var(--border-color);
+    position: relative;
+}
+
+.form-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--accent-gradient);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.form-input::placeholder {
+    color: var(--text-muted);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--seo-color);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+/* Radio Group - Inline */
+.radio-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.radio-option {
+    flex: 1;
+}
+
+.radio-option input {
+    position: absolute;
+    opacity: 0;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.radio-option input:checked + .radio-label {
+    border-color: var(--seo-color);
+    background: var(--seo-bg);
+    color: var(--seo-color);
+}
+
+.radio-label:hover {
+    border-color: var(--border-hover);
+}
+
+.radio-icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* Max Pages - Compact */
+.max-pages-group {
+    margin-top: 0.75rem;
+    display: none;
+}
+
+.max-pages-group.visible {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.max-pages-group label {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.max-pages-group input {
+    width: 60px;
+    padding: 0.375rem 0.5rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+/* File Input */
+.form-input[type="file"] {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+}
+
+.form-input[type="file"]::file-selector-button {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    margin-right: 0.75rem;
+}
+
+.help-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.375rem;
+}
+
+/* Submit Button */
+.submit-btn {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: var(--accent-gradient);
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 0.5rem;
+}
+
+.submit-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
+}
+
+.submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.submit-btn-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.submit-btn svg.spinning {
+    animation: spin 1s linear infinite;
+}
+
+/* Feature Tags */
+.feature-tags {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 1.75rem;
+}
+
+.feature-tag {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.feature-tag .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.feature-tag .dot.seo { background: var(--seo-color); }
+.feature-tag .dot.aeo { background: var(--aeo-color); }
+.feature-tag .dot.geo { background: var(--geo-color); }
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="home-page">
+    <div class="hero">
+        <h1>Analyze Your Website</h1>
+        <p class="hero-subtitle">for Search, Answer Engine, & Generative AI optimization</p>
+    </div>
+
+    <form class="form-card" action="{{ url_for('analysis.analyze') }}" method="POST" enctype="multipart/form-data" id="analysis-form">
+        <div class="form-group">
+            <label class="form-label" for="url">Website URL</label>
+            <input
+                type="url"
+                id="url"
+                name="url"
+                class="form-input"
+                placeholder="https://example.com"
+                required
+                pattern="https?://.*"
+            >
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Analysis Mode</label>
+            <div class="radio-group">
+                <div class="radio-option">
+                    <input type="radio" name="mode" id="mode-single" value="single" checked>
+                    <label class="radio-label" for="mode-single">
+                        <svg class="radio-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                            <path d="M14 2v6h6"/>
+                        </svg>
+                        Single Page
+                    </label>
+                </div>
+                <div class="radio-option">
+                    <input type="radio" name="mode" id="mode-full" value="full">
+                    <label class="radio-label" for="mode-full">
+                        <svg class="radio-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3h18v18H3zM3 9h18M9 21V9"/>
+                        </svg>
+                        Full Site
+                    </label>
+                </div>
+            </div>
+            <div class="max-pages-group" id="max-pages-group">
+                <label for="max_pages">Max pages:</label>
+                <input type="number" id="max_pages" name="max_pages" value="10" min="1" max="50">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="keyword_csv">Keyword CSV (Optional)</label>
+            <input type="file" id="keyword_csv" name="keyword_csv" class="form-input" accept=".csv">
+            <span class="help-text">SEMrush/Ahrefs export: Keyword, Volume, Difficulty, CPC</span>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submit-btn">
+            <span class="submit-btn-content">
+                <svg id="btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <span id="btn-text">Start Analysis</span>
+            </span>
+        </button>
+    </form>
+
+    <div class="feature-tags">
+        <span class="feature-tag"><span class="dot seo"></span> SEO</span>
+        <span class="feature-tag"><span class="dot aeo"></span> AEO</span>
+        <span class="feature-tag"><span class="dot geo"></span> GEO</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const modeRadios = document.querySelectorAll('input[name="mode"]');
+const maxPagesGroup = document.getElementById('max-pages-group');
+
+modeRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+        maxPagesGroup.classList.toggle('visible', radio.value === 'full' && radio.checked);
+    });
+});
+
+document.getElementById('analysis-form').addEventListener('submit', function(e) {
+    const url = document.getElementById('url').value.trim();
+    if (!url.match(/^https?:\/\/.+/)) {
+        e.preventDefault();
+        alert('Please enter a valid URL starting with http:// or https://');
+        return false;
+    }
+    const submitBtn = document.getElementById('submit-btn');
+    const btnIcon = document.getElementById('btn-icon');
+    const btnText = document.getElementById('btn-text');
+
+    submitBtn.disabled = true;
+    btnIcon.classList.add('spinning');
+    btnText.textContent = 'Analyzing...';
+});
+</script>
+{% endblock %}

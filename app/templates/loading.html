@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}Analyzing — EngineOp{% endblock %}
+
+{% block extra_head %}
+<style>
+.loading-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 200px);
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+.loading-icon {
+    width: 100px;
+    height: 100px;
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.loading-ring {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid var(--bg-tertiary);
+    border-top-color: var(--seo-color);
+    border-right-color: var(--aeo-color);
+    border-bottom-color: var(--geo-color);
+    animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-page h1 {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.url-display {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 2.5rem;
+}
+
+/* Progress Section */
+.progress-container {
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 2.5rem;
+}
+
+.progress-bar {
+    height: 6px;
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--accent-gradient);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.progress-text {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    font-weight: 500;
+}
+
+.progress-percent {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+/* Steps */
+.loading-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 2rem;
+}
+
+.step {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    color: var(--text-muted);
+    font-size: 0.9375rem;
+    transition: all 0.3s ease;
+}
+
+.step-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.step-icon svg {
+    width: 12px;
+    height: 12px;
+    display: none;
+}
+
+.step.active {
+    color: var(--text-primary);
+}
+
+.step.active .step-icon {
+    border-color: var(--seo-color);
+    background: var(--seo-bg);
+    color: var(--seo-color);
+    animation: pulse 1.5s ease infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+}
+
+.step.complete {
+    color: var(--seo-color);
+}
+
+.step.complete .step-icon {
+    border-color: var(--seo-color);
+    background: var(--seo-color);
+    color: white;
+}
+
+.step.complete .step-icon svg {
+    display: block;
+}
+
+/* Step type colors */
+.step[data-type="seo"].active .step-icon,
+.step[data-type="seo"].complete .step-icon {
+    border-color: var(--seo-color);
+    background: var(--seo-bg);
+    color: var(--seo-color);
+}
+.step[data-type="seo"].complete .step-icon {
+    background: var(--seo-color);
+    color: white;
+}
+
+.step[data-type="aeo"].active .step-icon {
+    border-color: var(--aeo-color);
+    background: var(--aeo-bg);
+    color: var(--aeo-color);
+}
+.step[data-type="aeo"].complete .step-icon {
+    border-color: var(--aeo-color);
+    background: var(--aeo-color);
+    color: white;
+}
+
+.step[data-type="geo"].active .step-icon {
+    border-color: var(--geo-color);
+    background: var(--geo-bg);
+    color: var(--geo-color);
+}
+.step[data-type="geo"].complete .step-icon {
+    border-color: var(--geo-color);
+    background: var(--geo-color);
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="loading-page">
+    <div class="loading-icon">
+        <div class="loading-ring"></div>
+    </div>
+
+    <h1>Analyzing Your Website</h1>
+    <p class="url-display">{{ url }}</p>
+
+    <div class="progress-container">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+        </div>
+        <div class="progress-info">
+            <span class="progress-text" id="progress-text">Starting analysis...</span>
+            <span class="progress-percent" id="progress-percent">0%</span>
+        </div>
+    </div>
+
+    <div class="loading-steps">
+        <div class="step" id="step-crawl" data-type="crawl">
+            <span class="step-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <span class="step-text">Crawling pages</span>
+        </div>
+        <div class="step" id="step-seo" data-type="seo">
+            <span class="step-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <span class="step-text">SEO analysis</span>
+        </div>
+        <div class="step" id="step-aeo" data-type="aeo">
+            <span class="step-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <span class="step-text">AEO analysis</span>
+        </div>
+        <div class="step" id="step-geo" data-type="geo">
+            <span class="step-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <span class="step-text">GEO analysis</span>
+        </div>
+        <div class="step" id="step-report" data-type="report">
+            <span class="step-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <span class="step-text">Generating report</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const analysisId = "{{ analysis_id }}";
+let pollInterval;
+
+function updateProgress(data) {
+    const progressFill = document.getElementById('progress-fill');
+    const progressText = document.getElementById('progress-text');
+    const progressPercent = document.getElementById('progress-percent');
+
+    progressFill.style.width = data.progress + '%';
+    progressText.textContent = data.step;
+    progressPercent.textContent = data.progress + '%';
+
+    // Update step indicators
+    const steps = {
+        'crawl': ['Crawling', 'crawl'],
+        'seo': ['SEO', 'seo'],
+        'aeo': ['AEO', 'aeo'],
+        'geo': ['GEO', 'geo'],
+        'report': ['Generating', 'Finalizing', 'Complete']
+    };
+
+    for (const [stepId, keywords] of Object.entries(steps)) {
+        const stepEl = document.getElementById('step-' + stepId);
+        if (!stepEl) continue;
+
+        const isActive = keywords.some(kw => data.step.includes(kw));
+        const isComplete = data.progress >= getStepThreshold(stepId);
+
+        stepEl.classList.toggle('active', isActive && !isComplete);
+        stepEl.classList.toggle('complete', isComplete);
+    }
+}
+
+function getStepThreshold(stepId) {
+    const thresholds = {
+        'crawl': 30,
+        'seo': 50,
+        'aeo': 65,
+        'geo': 80,
+        'report': 100
+    };
+    return thresholds[stepId] || 100;
+}
+
+function pollProgress() {
+    fetch('/progress/' + analysisId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'not_found') {
+                clearInterval(pollInterval);
+                return;
+            }
+
+            updateProgress(data);
+
+            if (data.progress >= 100) {
+                clearInterval(pollInterval);
+                window.location.href = '/results/' + analysisId;
+            }
+        })
+        .catch(err => {
+            console.error('Poll error:', err);
+        });
+}
+
+// Start polling
+pollInterval = setInterval(pollProgress, 1000);
+pollProgress();
+</script>
+{% endblock %}

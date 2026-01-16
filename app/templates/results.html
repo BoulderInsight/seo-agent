@@ -1,0 +1,1287 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis Results - {{ result.url }}{% endblock %}
+
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg-primary: #0a0a0b;
+    --bg-secondary: #141416;
+    --bg-tertiary: #1c1c1f;
+    --bg-card: #1e1e21;
+    --text-primary: #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    --border-color: #27272a;
+    --border-hover: #3f3f46;
+
+    --seo-color: #10b981;
+    --seo-bg: rgba(16, 185, 129, 0.1);
+    --aeo-color: #3b82f6;
+    --aeo-bg: rgba(59, 130, 246, 0.1);
+    --geo-color: #f59e0b;
+    --geo-bg: rgba(245, 158, 11, 0.1);
+
+    --impact-high: #ef4444;
+    --impact-medium: #f59e0b;
+    --impact-low: #10b981;
+
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'DM Sans', system-ui, sans-serif;
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-body);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+.results-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Header */
+.results-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding: 2rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.results-header h1 {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.75rem;
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.url-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg-tertiary);
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-xl);
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.url-badge svg { opacity: 0.5; }
+
+.meta-info {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+/* Score Heroes */
+.score-heroes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.score-hero {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.score-hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.score-hero.seo::before { background: var(--seo-color); }
+.score-hero.aeo::before { background: var(--aeo-color); }
+.score-hero.geo::before { background: var(--geo-color); }
+
+.score-hero:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+}
+
+.score-hero:hover::before { opacity: 1; }
+
+.score-hero.active {
+    border-color: var(--border-hover);
+}
+
+.score-hero.active::before { opacity: 1; }
+
+.score-ring-container {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 1.5rem;
+}
+
+.score-ring {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+}
+
+.score-ring-bg {
+    fill: none;
+    stroke: var(--bg-tertiary);
+    stroke-width: 8;
+}
+
+.score-ring-progress {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s ease-out;
+}
+
+.score-ring-progress.seo { stroke: var(--seo-color); }
+.score-ring-progress.aeo { stroke: var(--aeo-color); }
+.score-ring-progress.geo { stroke: var(--geo-color); }
+
+.score-value {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.score-number {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.score-number.seo { color: var(--seo-color); }
+.score-number.aeo { color: var(--aeo-color); }
+.score-number.geo { color: var(--geo-color); }
+
+.score-max {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+}
+
+.score-label {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.score-rating {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.score-potential {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.score-potential strong {
+    color: var(--text-secondary);
+}
+
+/* Tab Navigation */
+.tab-nav {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    background: var(--bg-secondary);
+    padding: 0.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 1rem 1.5rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.tab-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+
+.tab-btn.active {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.tab-btn.active.seo { color: var(--seo-color); }
+.tab-btn.active.aeo { color: var(--aeo-color); }
+.tab-btn.active.geo { color: var(--geo-color); }
+
+.tab-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.7;
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active { display: block; }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Roadmap Section */
+.roadmap-section {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.roadmap-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.roadmap-title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.roadmap-title .highlight {
+    padding: 0.125rem 0.5rem;
+    border-radius: var(--radius-sm);
+}
+
+.roadmap-title .highlight.seo { background: var(--seo-bg); color: var(--seo-color); }
+.roadmap-title .highlight.aeo { background: var(--aeo-bg); color: var(--aeo-color); }
+.roadmap-title .highlight.geo { background: var(--geo-bg); color: var(--geo-color); }
+
+.roadmap-target {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.target-badge {
+    background: var(--bg-tertiary);
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius-xl);
+    font-weight: 600;
+}
+
+/* Priority Tasks */
+.priority-section {
+    margin-bottom: 2rem;
+}
+
+.priority-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius-sm);
+}
+
+.priority-label.high {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--impact-high);
+}
+
+.priority-label.medium {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--impact-medium);
+}
+
+.priority-label.low {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--impact-low);
+}
+
+.task-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.task-card {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.task-card:hover {
+    border-color: var(--border-hover);
+    transform: translateX(4px);
+}
+
+.task-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.task-title {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    line-height: 1.4;
+}
+
+.task-meta {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.task-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.task-badge.impact-high { background: rgba(239, 68, 68, 0.15); color: var(--impact-high); }
+.task-badge.impact-medium { background: rgba(245, 158, 11, 0.15); color: var(--impact-medium); }
+.task-badge.impact-low { background: rgba(16, 185, 129, 0.15); color: var(--impact-low); }
+.task-badge.effort-low { background: rgba(16, 185, 129, 0.1); color: var(--impact-low); }
+.task-badge.effort-medium { background: rgba(245, 158, 11, 0.1); color: var(--impact-medium); }
+.task-badge.effort-high { background: rgba(239, 68, 68, 0.1); color: var(--impact-high); }
+
+.task-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.task-actions {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    display: none;
+}
+
+.task-card.expanded .task-actions { display: block; }
+
+.action-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.action-item::before {
+    content: '→';
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+/* Point Gain Indicator */
+.point-gain {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--impact-low);
+}
+
+/* Collapsible Sections */
+.collapsible {
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.collapsible-header {
+    padding: 1.25rem 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.2s ease;
+}
+
+.collapsible-header:hover { background: var(--bg-tertiary); }
+
+.collapsible-title {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.collapsible-icon {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+    color: var(--text-muted);
+}
+
+.collapsible.open .collapsible-icon { transform: rotate(180deg); }
+
+.collapsible-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.collapsible.open .collapsible-content { max-height: 2000px; }
+
+.collapsible-inner {
+    padding: 0 1.5rem 1.5rem;
+}
+
+/* Findings List */
+.findings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.finding-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+}
+
+.finding-bullet {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.finding-bullet.current { background: var(--text-muted); }
+.finding-bullet.opportunity { background: var(--seo-color); }
+.finding-bullet.question { background: var(--aeo-color); }
+.finding-bullet.risk { background: var(--impact-high); }
+.finding-bullet.strength { background: var(--geo-color); }
+
+/* Download Section */
+.download-section {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.5rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.download-btn:hover {
+    background: var(--bg-card);
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+}
+
+.download-btn svg {
+    width: 18px;
+    height: 18px;
+    opacity: 0.7;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .score-heroes { grid-template-columns: 1fr; }
+    .results-page { padding: 1rem; }
+    .roadmap-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+}
+
+/* Quick Win Badge */
+.quick-win {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: linear-gradient(135deg, var(--impact-low), #059669);
+    color: white;
+    font-size: 0.625rem;
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.task-card { position: relative; }
+
+/* Score Journey */
+.score-journey {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+}
+
+.journey-current, .journey-target {
+    text-align: center;
+    padding: 0.5rem 1rem;
+}
+
+.journey-score {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.journey-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.journey-arrow {
+    flex: 1;
+    height: 2px;
+    background: linear-gradient(90deg, var(--text-muted), var(--seo-color));
+    position: relative;
+}
+
+.journey-arrow::after {
+    content: '→';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--seo-color);
+    font-size: 1.25rem;
+}
+
+.journey-arrow.aeo { background: linear-gradient(90deg, var(--text-muted), var(--aeo-color)); }
+.journey-arrow.aeo::after { color: var(--aeo-color); }
+.journey-arrow.geo { background: linear-gradient(90deg, var(--text-muted), var(--geo-color)); }
+.journey-arrow.geo::after { color: var(--geo-color); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="results-page">
+    <!-- Header -->
+    <header class="results-header">
+        <h1>Analysis Complete</h1>
+        <div class="url-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+            </svg>
+            {{ result.url }}
+        </div>
+        <div class="meta-info">
+            <span>{{ result.timestamp.strftime('%B %d, %Y at %H:%M') }}</span>
+            <span>•</span>
+            <span>{{ 'Full Site' if result.mode.value == 'full' else 'Single Page' }} Analysis</span>
+            <span>•</span>
+            <span>{{ result.pages|length }} page{{ 's' if result.pages|length != 1 else '' }}</span>
+        </div>
+    </header>
+
+    <!-- Score Heroes -->
+    <div class="score-heroes">
+        <div class="score-hero seo active" data-tab="seo">
+            <div class="score-ring-container">
+                <svg class="score-ring" viewBox="0 0 100 100">
+                    <circle class="score-ring-bg" cx="50" cy="50" r="42"/>
+                    <circle class="score-ring-progress seo" cx="50" cy="50" r="42"
+                            stroke-dasharray="264"
+                            stroke-dashoffset="{{ 264 - (264 * result.overall_seo_score / 10) }}"/>
+                </svg>
+                <div class="score-value">
+                    <div class="score-number seo">{{ result.overall_seo_score }}</div>
+                    <div class="score-max">/10</div>
+                </div>
+            </div>
+            <div class="score-label">SEO</div>
+            <div class="score-rating">{{ 'Excellent' if result.overall_seo_score >= 8 else 'Good' if result.overall_seo_score >= 6 else 'Fair' if result.overall_seo_score >= 4 else 'Needs Work' }}</div>
+            <div class="score-potential">
+                <strong>+{{ 10 - result.overall_seo_score }} points</strong> potential improvement
+            </div>
+        </div>
+
+        <div class="score-hero aeo" data-tab="aeo">
+            <div class="score-ring-container">
+                <svg class="score-ring" viewBox="0 0 100 100">
+                    <circle class="score-ring-bg" cx="50" cy="50" r="42"/>
+                    <circle class="score-ring-progress aeo" cx="50" cy="50" r="42"
+                            stroke-dasharray="264"
+                            stroke-dashoffset="{{ 264 - (264 * result.overall_aeo_score / 10) }}"/>
+                </svg>
+                <div class="score-value">
+                    <div class="score-number aeo">{{ result.overall_aeo_score }}</div>
+                    <div class="score-max">/10</div>
+                </div>
+            </div>
+            <div class="score-label">AEO</div>
+            <div class="score-rating">{{ 'Excellent' if result.overall_aeo_score >= 8 else 'Good' if result.overall_aeo_score >= 6 else 'Fair' if result.overall_aeo_score >= 4 else 'Needs Work' }}</div>
+            <div class="score-potential">
+                <strong>+{{ 10 - result.overall_aeo_score }} points</strong> potential improvement
+            </div>
+        </div>
+
+        <div class="score-hero geo" data-tab="geo">
+            <div class="score-ring-container">
+                <svg class="score-ring" viewBox="0 0 100 100">
+                    <circle class="score-ring-bg" cx="50" cy="50" r="42"/>
+                    <circle class="score-ring-progress geo" cx="50" cy="50" r="42"
+                            stroke-dasharray="264"
+                            stroke-dashoffset="{{ 264 - (264 * result.overall_geo_score / 10) }}"/>
+                </svg>
+                <div class="score-value">
+                    <div class="score-number geo">{{ result.overall_geo_score }}</div>
+                    <div class="score-max">/10</div>
+                </div>
+            </div>
+            <div class="score-label">GEO</div>
+            <div class="score-rating">{{ 'Excellent' if result.overall_geo_score >= 8 else 'Good' if result.overall_geo_score >= 6 else 'Fair' if result.overall_geo_score >= 4 else 'Needs Work' }}</div>
+            <div class="score-potential">
+                <strong>+{{ 10 - result.overall_geo_score }} points</strong> potential improvement
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <nav class="tab-nav">
+        <button class="tab-btn seo active" data-tab="seo">
+            <span class="tab-indicator"></span>
+            SEO Roadmap
+        </button>
+        <button class="tab-btn aeo" data-tab="aeo">
+            <span class="tab-indicator"></span>
+            AEO Roadmap
+        </button>
+        <button class="tab-btn geo" data-tab="geo">
+            <span class="tab-indicator"></span>
+            GEO Roadmap
+        </button>
+    </nav>
+
+    <!-- SEO Tab -->
+    <div class="tab-content active" id="tab-seo">
+        <div class="roadmap-section">
+            <div class="roadmap-header">
+                <h2 class="roadmap-title">
+                    Your path from <span class="highlight seo">{{ result.overall_seo_score }}/10</span> to <span class="highlight seo">9/10</span>
+                </h2>
+                <div class="roadmap-target">
+                    Target: <span class="target-badge">+{{ 9 - result.overall_seo_score }} points</span>
+                </div>
+            </div>
+
+            <div class="score-journey">
+                <div class="journey-current">
+                    <div class="journey-score" style="color: var(--seo-color)">{{ result.overall_seo_score }}</div>
+                    <div class="journey-label">Current</div>
+                </div>
+                <div class="journey-arrow"></div>
+                <div class="journey-target">
+                    <div class="journey-score" style="color: var(--seo-color)">9</div>
+                    <div class="journey-label">Target</div>
+                </div>
+            </div>
+
+            {% set seo_recs = result.recommendations|selectattr('category', 'equalto', 'SEO')|list %}
+
+            <!-- High Priority -->
+            {% set high_priority = seo_recs|selectattr('priority.impact', 'equalto', 'high')|list %}
+            {% if high_priority %}
+            <div class="priority-section">
+                <div class="priority-label high">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                    Do These First — High Impact
+                </div>
+                <div class="task-cards">
+                    {% for rec in high_priority[:3] %}
+                    <div class="task-card" onclick="this.classList.toggle('expanded')">
+                        {% if loop.first %}<span class="quick-win">Quick Win</span>{% endif %}
+                        <div class="task-card-header">
+                            <div class="task-title">{{ rec.title }}</div>
+                            <div class="task-meta">
+                                <span class="task-badge impact-{{ rec.priority.impact }}">{{ rec.priority.impact }} impact</span>
+                                <span class="task-badge effort-{{ rec.priority.effort }}">{{ rec.priority.effort }} effort</span>
+                            </div>
+                        </div>
+                        <div class="task-description">{{ rec.description }}</div>
+                        {% if rec.action_items %}
+                        <div class="task-actions">
+                            {% for action in rec.action_items %}
+                            <div class="action-item">{{ action }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Medium Priority -->
+            {% set medium_priority = seo_recs|selectattr('priority.impact', 'equalto', 'medium')|list %}
+            {% if medium_priority %}
+            <div class="priority-section">
+                <div class="priority-label medium">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                    Then Do These — Medium Impact
+                </div>
+                <div class="task-cards">
+                    {% for rec in medium_priority[:4] %}
+                    <div class="task-card" onclick="this.classList.toggle('expanded')">
+                        <div class="task-card-header">
+                            <div class="task-title">{{ rec.title }}</div>
+                            <div class="task-meta">
+                                <span class="task-badge impact-{{ rec.priority.impact }}">{{ rec.priority.impact }} impact</span>
+                                <span class="task-badge effort-{{ rec.priority.effort }}">{{ rec.priority.effort }} effort</span>
+                            </div>
+                        </div>
+                        <div class="task-description">{{ rec.description }}</div>
+                        {% if rec.action_items %}
+                        <div class="task-actions">
+                            {% for action in rec.action_items %}
+                            <div class="action-item">{{ action }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- SEO Findings -->
+        {% for page_result in result.pages %}
+        {% if page_result.seo %}
+        <div class="collapsible">
+            <div class="collapsible-header" onclick="this.parentElement.classList.toggle('open')">
+                <span class="collapsible-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--seo-color)" stroke-width="2">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Current SEO Analysis
+                </span>
+                <svg class="collapsible-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                </svg>
+            </div>
+            <div class="collapsible-content">
+                <div class="collapsible-inner">
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        <strong>Primary Topic:</strong> {{ page_result.seo.primary_topic }}<br>
+                        <strong>Rationale:</strong> {{ page_result.seo.quality_rationale }}
+                    </p>
+
+                    {% if page_result.seo.target_keywords %}
+                    <h4 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem;">Current Target Keywords</h4>
+                    <div class="findings-list" style="margin-bottom: 1.5rem;">
+                        {% for kw in page_result.seo.target_keywords %}
+                        <div class="finding-item">
+                            <span class="finding-bullet current"></span>
+                            {{ kw }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if page_result.seo.missing_keywords %}
+                    <h4 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem;">Keyword Opportunities</h4>
+                    <div class="findings-list">
+                        {% for kw in page_result.seo.missing_keywords %}
+                        <div class="finding-item">
+                            <span class="finding-bullet opportunity"></span>
+                            {{ kw }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- AEO Tab -->
+    <div class="tab-content" id="tab-aeo">
+        <div class="roadmap-section">
+            <div class="roadmap-header">
+                <h2 class="roadmap-title">
+                    Your path from <span class="highlight aeo">{{ result.overall_aeo_score }}/10</span> to <span class="highlight aeo">9/10</span>
+                </h2>
+                <div class="roadmap-target">
+                    Target: <span class="target-badge">+{{ 9 - result.overall_aeo_score }} points</span>
+                </div>
+            </div>
+
+            <div class="score-journey">
+                <div class="journey-current">
+                    <div class="journey-score" style="color: var(--aeo-color)">{{ result.overall_aeo_score }}</div>
+                    <div class="journey-label">Current</div>
+                </div>
+                <div class="journey-arrow aeo"></div>
+                <div class="journey-target">
+                    <div class="journey-score" style="color: var(--aeo-color)">9</div>
+                    <div class="journey-label">Target</div>
+                </div>
+            </div>
+
+            {% set aeo_recs = result.recommendations|selectattr('category', 'equalto', 'AEO')|list %}
+            {% set struct_recs = result.recommendations|selectattr('category', 'equalto', 'Structure')|list %}
+            {% set all_aeo_recs = aeo_recs + struct_recs %}
+
+            <!-- High Priority -->
+            {% set high_priority = all_aeo_recs|selectattr('priority.impact', 'equalto', 'high')|list %}
+            {% if high_priority %}
+            <div class="priority-section">
+                <div class="priority-label high">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                    Do These First — High Impact
+                </div>
+                <div class="task-cards">
+                    {% for rec in high_priority[:3] %}
+                    <div class="task-card" onclick="this.classList.toggle('expanded')">
+                        {% if loop.first %}<span class="quick-win">Quick Win</span>{% endif %}
+                        <div class="task-card-header">
+                            <div class="task-title">{{ rec.title }}</div>
+                            <div class="task-meta">
+                                <span class="task-badge impact-{{ rec.priority.impact }}">{{ rec.priority.impact }} impact</span>
+                                <span class="task-badge effort-{{ rec.priority.effort }}">{{ rec.priority.effort }} effort</span>
+                            </div>
+                        </div>
+                        <div class="task-description">{{ rec.description }}</div>
+                        {% if rec.action_items %}
+                        <div class="task-actions">
+                            {% for action in rec.action_items %}
+                            <div class="action-item">{{ action }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Medium Priority -->
+            {% set medium_priority = all_aeo_recs|selectattr('priority.impact', 'equalto', 'medium')|list %}
+            {% if medium_priority %}
+            <div class="priority-section">
+                <div class="priority-label medium">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                    Then Do These — Medium Impact
+                </div>
+                <div class="task-cards">
+                    {% for rec in medium_priority[:4] %}
+                    <div class="task-card" onclick="this.classList.toggle('expanded')">
+                        <div class="task-card-header">
+                            <div class="task-title">{{ rec.title }}</div>
+                            <div class="task-meta">
+                                <span class="task-badge impact-{{ rec.priority.impact }}">{{ rec.priority.impact }} impact</span>
+                                <span class="task-badge effort-{{ rec.priority.effort }}">{{ rec.priority.effort }} effort</span>
+                            </div>
+                        </div>
+                        <div class="task-description">{{ rec.description }}</div>
+                        {% if rec.action_items %}
+                        <div class="task-actions">
+                            {% for action in rec.action_items %}
+                            <div class="action-item">{{ action }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- AEO Findings -->
+        {% for page_result in result.pages %}
+        {% if page_result.aeo %}
+        <div class="collapsible">
+            <div class="collapsible-header" onclick="this.parentElement.classList.toggle('open')">
+                <span class="collapsible-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--aeo-color)" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
+                        <path d="M12 17h.01"/>
+                    </svg>
+                    Current AEO Analysis
+                </span>
+                <svg class="collapsible-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                </svg>
+            </div>
+            <div class="collapsible-content">
+                <div class="collapsible-inner">
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        <strong>Rationale:</strong> {{ page_result.aeo.readiness_rationale }}<br>
+                        <strong>Featured Snippet Potential:</strong> {{ page_result.aeo.featured_snippet_potential }}
+                    </p>
+
+                    {% if page_result.aeo.questions_answered %}
+                    <h4 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem;">Questions You Answer</h4>
+                    <div class="findings-list" style="margin-bottom: 1.5rem;">
+                        {% for q in page_result.aeo.questions_answered %}
+                        <div class="finding-item">
+                            <span class="finding-bullet current"></span>
+                            {{ q }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if page_result.aeo.questions_to_add %}
+                    <h4 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem;">Questions to Add</h4>
+                    <div class="findings-list" style="margin-bottom: 1.5rem;">
+                        {% for q in page_result.aeo.questions_to_add %}
+                        <div class="finding-item">
+                            <span class="finding-bullet question"></span>
+                            {{ q }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if page_result.aeo.paa_opportunities %}
+                    <h4 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem;">People Also Ask Opportunities</h4>
+                    <div class="findings-list">
+                        {% for q in page_result.aeo.paa_opportunities %}
+                        <div class="finding-item">
+                            <span class="finding-bullet opportunity"></span>
+                            {{ q }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- GEO Tab -->
+    <div class="tab-content" id="tab-geo">
+        <div class="roadmap-section">
+            <div class="roadmap-header">
+                <h2 class="roadmap-title">
+                    Your path from <span class="highlight geo">{{ result.overall_geo_score }}/10</span> to <span class="highlight geo">9/10</span>
+                </h2>
+                <div class="roadmap-target">
+                    Target: <span class="target-badge">+{{ 9 - result.overall_geo_score }} points</span>
+                </div>
+            </div>
+
+            <div class="score-journey">
+                <div class="journey-current">
+                    <div class="journey-score" style="color: var(--geo-color)">{{ result.overall_geo_score }}</div>
+                    <div class="journey-label">Current</div>
+                </div>
+                <div class="journey-arrow geo"></div>
+                <div class="journey-target">
+                    <div class="journey-score" style="color: var(--geo-color)">9</div>
+                    <div class="journey-label">Target</div>
+                </div>
+            </div>
+
+            {% set geo_recs = result.recommendations|selectattr('category', 'equalto', 'GEO')|list %}
+
+            <!-- High Priority -->
+            {% set high_priority = geo_recs|selectattr('priority.impact', 'equalto', 'high')|list %}
+            {% if high_priority %}
+            <div class="priority-section">
+                <div class="priority-label high">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                    Do These First — High Impact
+                </div>
+                <div class="task-cards">
+                    {% for rec in high_priority[:3] %}
+                    <div class="task-card" onclick="this.classList.toggle('expanded')">
+                        {% if loop.first %}<span class="quick-win">Quick Win</span>{% endif %}
+                        <div class="task-card-header">
+                            <div class="task-title">{{ rec.title }}</div>
+                            <div class="task-meta">
+                                <span class="task-badge impact-{{ rec.priority.impact }}">{{ rec.priority.impact }} impact</span>
+                                <span class="task-badge effort-{{ rec.priority.effort }}">{{ rec.priority.effort }} effort</span>
+                            </div>
+                        </div>
+                        <div class="task-description">{{ rec.description }}</div>
+                        {% if rec.action_items %}
+                        <div class="task-actions">
+                            {% for action in rec.action_items %}
+                            <div class="action-item">{{ action }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Medium Priority -->
+            {% set medium_priority = geo_recs|selectattr('priority.impact', 'equalto', 'medium')|list %}
+            {% if medium_priority %}
+            <div class="priority-section">
+                <div class="priority-label medium">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                    Then Do These — Medium Impact
+                </div>
+                <div class="task-cards">
+                    {% for rec in medium_priority[:4] %}
+                    <div class="task-card" onclick="this.classList.toggle('expanded')">
+                        <div class="task-card-header">
+                            <div class="task-title">{{ rec.title }}</div>
+                            <div class="task-meta">
+                                <span class="task-badge impact-{{ rec.priority.impact }}">{{ rec.priority.impact }} impact</span>
+                                <span class="task-badge effort-{{ rec.priority.effort }}">{{ rec.priority.effort }} effort</span>
+                            </div>
+                        </div>
+                        <div class="task-description">{{ rec.description }}</div>
+                        {% if rec.action_items %}
+                        <div class="task-actions">
+                            {% for action in rec.action_items %}
+                            <div class="action-item">{{ action }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- GEO Findings -->
+        {% for page_result in result.pages %}
+        {% if page_result.geo %}
+        <div class="collapsible">
+            <div class="collapsible-header" onclick="this.parentElement.classList.toggle('open')">
+                <span class="collapsible-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--geo-color)" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    Current GEO Analysis
+                </span>
+                <svg class="collapsible-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                </svg>
+            </div>
+            <div class="collapsible-content">
+                <div class="collapsible-inner">
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                        <strong>Originality:</strong> {{ page_result.geo.originality_assessment }}<br>
+                        <strong>Rationale:</strong> {{ page_result.geo.strength_rationale }}
+                    </p>
+
+                    {% if page_result.geo.citation_worthy_elements %}
+                    <h4 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem;">Citation-Worthy Elements</h4>
+                    <div class="findings-list" style="margin-bottom: 1.5rem;">
+                        {% for el in page_result.geo.citation_worthy_elements %}
+                        <div class="finding-item">
+                            <span class="finding-bullet strength"></span>
+                            {{ el }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if page_result.geo.absorption_risks %}
+                    <h4 style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 0.75rem;">Absorption Risks</h4>
+                    <div class="findings-list">
+                        {% for risk in page_result.geo.absorption_risks %}
+                        <div class="finding-item">
+                            <span class="finding-bullet risk"></span>
+                            {{ risk }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+
+    <!-- Download Section -->
+    <div class="download-section">
+        <a href="{{ url_for('analysis.download', analysis_id=result.id, format='markdown') }}" class="download-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+            </svg>
+            Download Markdown
+        </a>
+        <a href="{{ url_for('analysis.download', analysis_id=result.id, format='html') }}" class="download-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6"/>
+            </svg>
+            Download HTML
+        </a>
+        <a href="{{ url_for('analysis.download', analysis_id=result.id, format='csv') }}" class="download-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6M8 13h2M8 17h2M14 13h2M14 17h2"/>
+            </svg>
+            Download CSV
+        </a>
+    </div>
+</div>
+
+<script>
+// Tab switching
+document.querySelectorAll('[data-tab]').forEach(el => {
+    el.addEventListener('click', () => {
+        const tab = el.dataset.tab;
+
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tab);
+        });
+
+        // Update score heroes
+        document.querySelectorAll('.score-hero').forEach(hero => {
+            hero.classList.toggle('active', hero.dataset.tab === tab);
+        });
+
+        // Update tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.toggle('active', content.id === `tab-${tab}`);
+        });
+    });
+});
+
+// Animate score rings on load
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.score-ring-progress').forEach(ring => {
+        const offset = ring.getAttribute('stroke-dashoffset');
+        ring.style.strokeDashoffset = '264';
+        setTimeout(() => {
+            ring.style.strokeDashoffset = offset;
+        }, 100);
+    });
+});
+</script>
+{% endblock %}
