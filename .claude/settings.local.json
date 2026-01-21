@@ -13,7 +13,11 @@
       "Skill(superpowers:brainstorming)",
       "Bash(git -C /home/parallels/ralph/projects/seo-agent log --oneline -5)",
       "Bash(python:*)",
-      "Skill(frontend-design:frontend-design)"
+      "Skill(frontend-design:frontend-design)",
+      "Bash(ls:*)",
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(xargs ls:*)"
     ]
   }
 }

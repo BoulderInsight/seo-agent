@@ -1,11 +1,33 @@
-"""Report generation services for Markdown, HTML, and CSV output."""
+"""Report generation services for Markdown, HTML, CSV, and PDF output."""
 
+import base64
 import csv
 import io
+import os
+from io import BytesIO
+from pathlib import Path
 
 import markdown
 
 from app.models import AnalysisResult, PageAnalysisResult
+
+
+def _get_logo_base64() -> str:
+    """Get the EngineOp logo as a base64-encoded data URI."""
+    # Find the logo file
+    app_dir = Path(__file__).parent.parent
+    logo_path = app_dir / "static" / "images" / "EngineOpDark.png"
+
+    if not logo_path.exists():
+        # Fallback to root directory
+        logo_path = app_dir.parent / "EngineOpDark.png"
+
+    if logo_path.exists():
+        with open(logo_path, "rb") as f:
+            logo_data = base64.b64encode(f.read()).decode("utf-8")
+        return f"data:image/png;base64,{logo_data}"
+
+    return ""
 
 
 def generate_markdown_report(result: AnalysisResult) -> str:
@@ -389,3 +411,725 @@ def generate_csv_export(result: AnalysisResult) -> str:
             ])
 
     return output.getvalue()
+
+
+def generate_pdf_report(result: AnalysisResult) -> bytes:
+    """
+    Generate a styled PDF report from analysis results.
+
+    Args:
+        result: The complete analysis result
+
+    Returns:
+        PDF file as bytes
+    """
+    from weasyprint import HTML, CSS
+
+    # Build the HTML content for PDF
+    html_content = _build_pdf_html(result)
+
+    # Convert to PDF
+    html_doc = HTML(string=html_content)
+    pdf_bytes = html_doc.write_pdf()
+
+    return pdf_bytes
+
+
+def _build_pdf_html(result: AnalysisResult) -> str:
+    """Build styled HTML for PDF generation with executive-ready layout."""
+
+    logo_data_uri = _get_logo_base64()
+
+    def score_color(score: int) -> str:
+        if score >= 8:
+            return "#059669"
+        elif score >= 6:
+            return "#0891b2"
+        elif score >= 4:
+            return "#d97706"
+        return "#dc2626"
+
+    def score_bg(score: int) -> str:
+        if score >= 8:
+            return "#ecfdf5"
+        elif score >= 6:
+            return "#ecfeff"
+        elif score >= 4:
+            return "#fffbeb"
+        return "#fef2f2"
+
+    seo_score = result.overall_seo_score
+    aeo_score = result.overall_aeo_score
+    geo_score = result.overall_geo_score
+
+    # Gather recommendations by category
+    seo_recs = [r for r in result.recommendations if r.category == "SEO"]
+    aeo_recs = [r for r in result.recommendations if r.category in ("AEO", "Structure")]
+    geo_recs = [r for r in result.recommendations if r.category == "GEO"]
+    all_recs = result.recommendations
+
+    # Get top 3 priorities for executive summary
+    top_priorities = all_recs[:3] if all_recs else []
+
+    # Collect SEO data
+    seo_current_keywords = []
+    seo_missing_keywords = []
+    seo_content_gaps = []
+    seo_primary_topic = ""
+    seo_rationale = ""
+
+    # Collect AEO data
+    aeo_rationale = ""
+    aeo_snippet_potential = ""
+    aeo_questions_answered = []
+    aeo_questions_to_add = []
+    aeo_paa = []
+
+    # Collect GEO data
+    geo_originality = ""
+    geo_rationale = ""
+    geo_citations = []
+    geo_risks = []
+    geo_suggestions = []
+
+    # Collect structural issues
+    structural_issues = []
+
+    for page_result in result.pages:
+        if page_result.seo:
+            seo = page_result.seo
+            seo_primary_topic = seo.primary_topic or seo_primary_topic
+            seo_rationale = seo.quality_rationale or seo_rationale
+            seo_current_keywords.extend(seo.target_keywords or [])
+            seo_missing_keywords.extend(seo.missing_keywords or [])
+            seo_content_gaps.extend(seo.content_gaps or [])
+
+        if page_result.aeo:
+            aeo = page_result.aeo
+            aeo_rationale = aeo.readiness_rationale or aeo_rationale
+            aeo_snippet_potential = aeo.featured_snippet_potential or aeo_snippet_potential
+            aeo_questions_answered.extend(aeo.questions_answered or [])
+            aeo_questions_to_add.extend(aeo.questions_to_add or [])
+            aeo_paa.extend(aeo.paa_opportunities or [])
+
+        if page_result.geo:
+            geo = page_result.geo
+            geo_originality = geo.originality_assessment or geo_originality
+            geo_rationale = geo.strength_rationale or geo_rationale
+            geo_citations.extend(geo.citation_worthy_elements or [])
+            geo_risks.extend(geo.absorption_risks or [])
+            geo_suggestions.extend(geo.defensibility_suggestions or [])
+
+        if page_result.structure and page_result.structure.issues:
+            structural_issues.extend(page_result.structure.issues)
+
+    # Helper to build table rows
+    def build_table_rows(items, max_items=5):
+        rows = ""
+        for item in items[:max_items]:
+            rows += f"<tr><td>{item}</td></tr>"
+        return rows
+
+    # Helper to build action rows with impact
+    def build_action_rows(recs, category_filter=None, max_items=5):
+        filtered = recs
+        if category_filter:
+            filtered = [r for r in recs if r.category == category_filter]
+
+        high = [r for r in filtered if r.priority.impact == "high"][:max_items]
+        medium = [r for r in filtered if r.priority.impact == "medium"][:max_items]
+
+        rows = ""
+        for r in high:
+            rows += f'<tr><td class="impact-high">High</td><td><strong>{r.title}</strong></td></tr>'
+        for r in medium:
+            rows += f'<tr><td class="impact-medium">Medium</td><td><strong>{r.title}</strong></td></tr>'
+        return rows
+
+    # Build executive summary priorities
+    priorities_html = ""
+    for i, rec in enumerate(top_priorities, 1):
+        priorities_html += f'<div class="priority-item"><span class="priority-num">{i}</span><div><strong>{rec.title}</strong><p>{rec.description}</p></div></div>'
+
+    # Build roadmap table
+    roadmap_high = [r for r in all_recs if r.priority.impact == "high"][:6]
+    roadmap_medium = [r for r in all_recs if r.priority.impact == "medium"][:6]
+
+    roadmap_high_html = ""
+    for r in roadmap_high:
+        roadmap_high_html += f'<tr><td>{r.title}</td><td>{r.category}</td></tr>'
+
+    roadmap_medium_html = ""
+    for r in roadmap_medium:
+        roadmap_medium_html += f'<tr><td>{r.title}</td><td>{r.category}</td></tr>'
+
+    return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>EngineOp Analysis Report</title>
+    <style>
+        @page {{
+            size: A4;
+            margin: 1.5cm 2cm;
+            @top-right {{
+                content: "EngineOp Report";
+                font-size: 9pt;
+                color: #6b7280;
+            }}
+            @bottom-center {{
+                content: counter(page) " of " counter(pages);
+                font-size: 9pt;
+                color: #6b7280;
+            }}
+        }}
+
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.5;
+            color: #1f2937;
+        }}
+
+        .page-break {{
+            page-break-after: always;
+        }}
+
+        /* Cover Page */
+        .cover {{
+            text-align: center;
+            padding-top: 60pt;
+        }}
+
+        .cover .logo {{
+            height: 56pt;
+            margin-bottom: 24pt;
+        }}
+
+        .cover h1 {{
+            font-size: 22pt;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 8pt;
+        }}
+
+        .cover .url {{
+            display: inline-block;
+            background: #f3f4f6;
+            padding: 8pt 16pt;
+            border-radius: 6pt;
+            font-family: monospace;
+            font-size: 11pt;
+            color: #374151;
+            margin: 16pt 0;
+        }}
+
+        .cover .date {{
+            font-size: 11pt;
+            color: #6b7280;
+            margin-bottom: 40pt;
+        }}
+
+        .scores {{
+            display: flex;
+            justify-content: center;
+            gap: 16pt;
+            margin-top: 40pt;
+        }}
+
+        .score-card {{
+            width: 140pt;
+            padding: 20pt 16pt;
+            border-radius: 8pt;
+            text-align: center;
+        }}
+
+        .score-card.seo {{
+            background: #e6f9f3;
+            border: 2pt solid #0eb981;
+        }}
+        .score-card.aeo {{
+            background: #eff6ff;
+            border: 2pt solid #3b83f7;
+        }}
+        .score-card.geo {{
+            background: #fef9e7;
+            border: 2pt solid #f59e0d;
+        }}
+
+        .score-value {{
+            font-size: 32pt;
+            font-weight: 700;
+            line-height: 1;
+        }}
+        .score-card.seo .score-value {{ color: #0eb981; }}
+        .score-card.aeo .score-value {{ color: #3b83f7; }}
+        .score-card.geo .score-value {{ color: #f59e0d; }}
+
+        .score-label {{
+            font-size: 12pt;
+            font-weight: 600;
+            margin-top: 8pt;
+        }}
+        .score-card.seo .score-label {{ color: #0eb981; }}
+        .score-card.aeo .score-label {{ color: #3b83f7; }}
+        .score-card.geo .score-label {{ color: #f59e0d; }}
+
+        .score-rating {{
+            font-size: 10pt;
+            color: #6b7280;
+            margin-top: 4pt;
+        }}
+
+        /* Executive Summary */
+        .exec-summary {{
+            padding-top: 20pt;
+        }}
+
+        .exec-summary h2 {{
+            font-size: 18pt;
+            font-weight: 700;
+            color: #111827;
+            border-bottom: 2pt solid #111827;
+            padding-bottom: 8pt;
+            margin-bottom: 20pt;
+        }}
+
+        .exec-summary h3 {{
+            font-size: 12pt;
+            font-weight: 600;
+            color: #374151;
+            margin: 20pt 0 12pt 0;
+        }}
+
+        .tldr {{
+            background: #eff6ff;
+            border-left: 4pt solid #3b83f7;
+            padding: 12pt 16pt;
+            margin-bottom: 20pt;
+        }}
+
+        .tldr p {{
+            font-size: 11pt;
+            color: #1e3a8a;
+            line-height: 1.6;
+        }}
+
+        .priority-item {{
+            display: flex;
+            gap: 12pt;
+            margin-bottom: 14pt;
+            align-items: flex-start;
+        }}
+
+        .priority-num {{
+            background: #111827;
+            color: white;
+            width: 22pt;
+            height: 22pt;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11pt;
+            font-weight: 600;
+            flex-shrink: 0;
+        }}
+
+        .priority-item p {{
+            font-size: 9pt;
+            color: #6b7280;
+            margin-top: 4pt;
+        }}
+
+        /* Section Pages */
+        .section-page {{
+            padding-top: 20pt;
+        }}
+
+        .section-header {{
+            display: flex;
+            align-items: center;
+            gap: 10pt;
+            margin-bottom: 20pt;
+            padding-bottom: 10pt;
+            border-bottom: 2pt solid #e5e7eb;
+        }}
+
+        .section-header h2 {{
+            font-size: 18pt;
+            font-weight: 700;
+            color: #111827;
+        }}
+
+        .section-header .badge {{
+            font-size: 9pt;
+            font-weight: 600;
+            padding: 4pt 10pt;
+            border-radius: 12pt;
+            color: white;
+        }}
+
+        .badge-seo {{ background: #0eb981; }}
+        .badge-aeo {{ background: #3b83f7; }}
+        .badge-geo {{ background: #f59e0d; }}
+
+        .two-column {{
+            display: flex;
+            gap: 20pt;
+        }}
+
+        .column {{
+            flex: 1;
+        }}
+
+        .subsection {{
+            margin-bottom: 16pt;
+        }}
+
+        .subsection h3 {{
+            font-size: 11pt;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 10pt;
+            padding-bottom: 4pt;
+            border-bottom: 1pt solid #e5e7eb;
+        }}
+
+        .subsection h4 {{
+            font-size: 9pt;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5pt;
+            margin: 12pt 0 8pt 0;
+        }}
+
+        /* Tables */
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+            margin-bottom: 12pt;
+        }}
+
+        th {{
+            background: #f3f4f6;
+            text-align: left;
+            padding: 8pt 10pt;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1pt solid #e5e7eb;
+        }}
+
+        td {{
+            padding: 8pt 10pt;
+            border-bottom: 1pt solid #f3f4f6;
+            color: #374151;
+        }}
+
+        .impact-high {{
+            color: #dc2626;
+            font-weight: 600;
+            width: 60pt;
+        }}
+
+        .impact-medium {{
+            color: #d97706;
+            font-weight: 600;
+            width: 60pt;
+        }}
+
+        /* Lists */
+        ul {{
+            margin: 0;
+            padding-left: 16pt;
+        }}
+
+        li {{
+            margin-bottom: 6pt;
+            font-size: 9pt;
+            color: #374151;
+        }}
+
+        .risk-list li {{
+            color: #dc2626;
+        }}
+
+        /* Info Box */
+        .info-box {{
+            background: #f9fafb;
+            border-radius: 6pt;
+            padding: 12pt;
+            margin-bottom: 12pt;
+        }}
+
+        .info-box p {{
+            font-size: 10pt;
+            color: #374151;
+            line-height: 1.5;
+        }}
+
+        .info-box .label {{
+            font-weight: 600;
+            color: #111827;
+        }}
+
+        /* Roadmap */
+        .roadmap h3 {{
+            font-size: 12pt;
+            font-weight: 600;
+            margin: 20pt 0 12pt 0;
+        }}
+
+        .roadmap h3.high {{
+            color: #dc2626;
+        }}
+
+        .roadmap h3.medium {{
+            color: #d97706;
+        }}
+
+        .next-steps {{
+            background: #f0fdf4;
+            border: 1pt solid #bbf7d0;
+            border-radius: 6pt;
+            padding: 14pt;
+            margin-top: 20pt;
+        }}
+
+        .next-steps h4 {{
+            font-size: 11pt;
+            font-weight: 600;
+            color: #166534;
+            margin-bottom: 10pt;
+        }}
+
+        .next-steps ol {{
+            margin: 0;
+            padding-left: 18pt;
+        }}
+
+        .next-steps li {{
+            color: #166534;
+            margin-bottom: 8pt;
+        }}
+
+        /* Footer */
+        .footer {{
+            margin-top: 30pt;
+            padding-top: 12pt;
+            border-top: 1pt solid #e5e7eb;
+            text-align: center;
+            font-size: 8pt;
+            color: #9ca3af;
+        }}
+    </style>
+</head>
+<body>
+    <!-- PAGE 1: Cover -->
+    <div class="cover">
+        <img src="{logo_data_uri}" class="logo" alt="EngineOp">
+        <h1>SEO / AEO / GEO Analysis Report</h1>
+        <div class="url">{result.url}</div>
+        <div class="date">{result.timestamp.strftime('%B %d, %Y')}</div>
+
+        <div class="scores">
+            <div class="score-card seo">
+                <div class="score-value">{seo_score}<span style="font-size: 14pt; color: #6b7280;">/10</span></div>
+                <div class="score-label">SEO</div>
+                <div class="score-rating">{_score_rating(seo_score)}</div>
+            </div>
+            <div class="score-card aeo">
+                <div class="score-value">{aeo_score}<span style="font-size: 14pt; color: #6b7280;">/10</span></div>
+                <div class="score-label">AEO</div>
+                <div class="score-rating">{_score_rating(aeo_score)}</div>
+            </div>
+            <div class="score-card geo">
+                <div class="score-value">{geo_score}<span style="font-size: 14pt; color: #6b7280;">/10</span></div>
+                <div class="score-label">GEO</div>
+                <div class="score-rating">{_score_rating(geo_score)}</div>
+            </div>
+        </div>
+    </div>
+    <div class="page-break"></div>
+
+    <!-- PAGE 2: Executive Summary -->
+    <div class="exec-summary">
+        <h2>Executive Summary</h2>
+
+        <div class="tldr">
+            <p><strong>Bottom Line:</strong> {seo_rationale or "Analysis complete. See section details for findings."}</p>
+        </div>
+
+        <h3>Top 3 Priorities</h3>
+        {priorities_html or "<p>No priority recommendations identified.</p>"}
+
+        <h3>Why This Matters</h3>
+        <p style="font-size: 10pt; line-height: 1.6; color: #374151;">
+            {"Your site scores 'Good' across dimensions, but generic content is at risk of being absorbed by AI without citation. Competitors with more specific, original content will outrank you. The fix is not more content - it is more specific content." if (seo_score >= 6 and aeo_score >= 6 and geo_score >= 6) else "There are significant opportunities to improve discoverability and defensibility. Focus on the high-impact actions first."}
+        </p>
+    </div>
+    <div class="page-break"></div>
+
+    <!-- PAGE 3: SEO Analysis -->
+    <div class="section-page">
+        <div class="section-header">
+            <h2>SEO Analysis</h2>
+            <span class="badge badge-seo">Search Engine Optimization</span>
+        </div>
+
+        <div class="two-column">
+            <div class="column">
+                <div class="subsection">
+                    <h3>What is Working</h3>
+                    <div class="info-box">
+                        <p><span class="label">Primary Topic:</span> {seo_primary_topic or "Not identified"}</p>
+                    </div>
+                    {f'<h4>Current Keywords</h4><ul>{"".join(f"<li>{kw}</li>" for kw in seo_current_keywords[:5])}</ul>' if seo_current_keywords else ""}
+                </div>
+            </div>
+            <div class="column">
+                <div class="subsection">
+                    <h3>What is Missing</h3>
+                    {f'<h4>Keyword Gaps</h4><ul>{"".join(f"<li>{kw}</li>" for kw in seo_missing_keywords[:5])}</ul>' if seo_missing_keywords else ""}
+                    {f'<h4>Content Gaps</h4><ul>{"".join(f"<li>{gap}</li>" for gap in seo_content_gaps[:5])}</ul>' if seo_content_gaps else ""}
+                </div>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>Actions</h3>
+            <table>
+                <tr><th>Impact</th><th>Action</th></tr>
+                {build_action_rows(seo_recs) or "<tr><td colspan='2'>No SEO actions identified.</td></tr>"}
+            </table>
+        </div>
+    </div>
+    <div class="page-break"></div>
+
+    <!-- PAGE 4: AEO Analysis -->
+    <div class="section-page">
+        <div class="section-header">
+            <h2>AEO Analysis</h2>
+            <span class="badge badge-aeo">Answer Engine Optimization</span>
+        </div>
+
+        <div class="subsection">
+            <h3>Answer Readiness</h3>
+            <div class="info-box">
+                <p>{aeo_rationale or "No readiness assessment available."}</p>
+                <p style="margin-top: 8pt;"><span class="label">Featured Snippet Potential:</span> {aeo_snippet_potential or "Not assessed"}</p>
+            </div>
+        </div>
+
+        {f'''<div class="subsection">
+            <h3>Structural Issues</h3>
+            <table>
+                <tr><th>Issue</th><th>Severity</th></tr>
+                {"".join(f"<tr><td>{issue.issue}</td><td>{issue.severity.value}</td></tr>" for issue in structural_issues[:5])}
+            </table>
+        </div>''' if structural_issues else ""}
+
+        <div class="two-column">
+            <div class="column">
+                <div class="subsection">
+                    <h3>Questions You Answer</h3>
+                    {f'<ul>{"".join(f"<li>{q}</li>" for q in aeo_questions_answered[:5])}</ul>' if aeo_questions_answered else "<p style='font-size: 9pt; color: #6b7280;'>None identified.</p>"}
+                </div>
+            </div>
+            <div class="column">
+                <div class="subsection">
+                    <h3>Questions to Add</h3>
+                    {f'<ul>{"".join(f"<li>{q}</li>" for q in aeo_questions_to_add[:5])}</ul>' if aeo_questions_to_add else "<p style='font-size: 9pt; color: #6b7280;'>None identified.</p>"}
+                    {f'<h4>People Also Ask</h4><ul>{"".join(f"<li>{q}</li>" for q in aeo_paa[:3])}</ul>' if aeo_paa else ""}
+                </div>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>Actions</h3>
+            <table>
+                <tr><th>Impact</th><th>Action</th></tr>
+                {build_action_rows(aeo_recs) or "<tr><td colspan='2'>No AEO actions identified.</td></tr>"}
+            </table>
+        </div>
+    </div>
+    <div class="page-break"></div>
+
+    <!-- PAGE 5: GEO Analysis -->
+    <div class="section-page">
+        <div class="section-header">
+            <h2>GEO Analysis</h2>
+            <span class="badge badge-geo">Generative Engine Optimization</span>
+        </div>
+
+        <div class="two-column">
+            <div class="column">
+                <div class="subsection">
+                    <h3>AI Absorption Risks</h3>
+                    <p style="font-size: 9pt; color: #6b7280; margin-bottom: 8pt;">Content AI may use without citing you:</p>
+                    {f'<ul class="risk-list">{"".join(f"<li>{r}</li>" for r in geo_risks[:5])}</ul>' if geo_risks else "<p style='font-size: 9pt; color: #6b7280;'>None identified.</p>"}
+                </div>
+
+                <div class="subsection">
+                    <h3>Defensibility Gaps</h3>
+                    {f'<ul>{"".join(f"<li>{s}</li>" for s in geo_suggestions[:5])}</ul>' if geo_suggestions else "<p style='font-size: 9pt; color: #6b7280;'>None identified.</p>"}
+                </div>
+            </div>
+            <div class="column">
+                <div class="subsection">
+                    <h3>What Makes You Citable</h3>
+                    <div class="info-box">
+                        <p><span class="label">Originality:</span> {geo_originality or "Not assessed"}</p>
+                    </div>
+                    {f'<h4>Citation-Worthy Elements</h4><ul>{"".join(f"<li>{c}</li>" for c in geo_citations[:5])}</ul>' if geo_citations else ""}
+                </div>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <h3>Actions</h3>
+            <table>
+                <tr><th>Impact</th><th>Action</th></tr>
+                {build_action_rows(geo_recs) or "<tr><td colspan='2'>No GEO actions identified.</td></tr>"}
+            </table>
+        </div>
+    </div>
+    <div class="page-break"></div>
+
+    <!-- PAGE 6: Action Roadmap -->
+    <div class="section-page roadmap">
+        <div class="section-header">
+            <h2>Action Roadmap</h2>
+        </div>
+
+        <h3 class="high">High Impact - Do First</h3>
+        <table>
+            <tr><th>Action</th><th>Category</th></tr>
+            {roadmap_high_html or "<tr><td colspan='2'>No high-impact actions.</td></tr>"}
+        </table>
+
+        <h3 class="medium">Medium Impact - Do Next</h3>
+        <table>
+            <tr><th>Action</th><th>Category</th></tr>
+            {roadmap_medium_html or "<tr><td colspan='2'>No medium-impact actions.</td></tr>"}
+        </table>
+
+        <div class="next-steps">
+            <h4>Next Steps</h4>
+            <ol>
+                <li>Start with one high-impact action from the list above</li>
+                <li>Add specific, original content that competitors cannot replicate</li>
+                <li>Reformat existing content for better scannability (bullets, tables)</li>
+            </ol>
+        </div>
+
+        <div class="footer">
+            Generated by EngineOp
+        </div>
+    </div>
+</body>
+</html>"""

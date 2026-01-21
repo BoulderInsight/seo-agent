@@ -539,6 +539,7 @@ body {
     display: flex;
     gap: 0.75rem;
     justify-content: center;
+    align-items: center;
     margin-top: 2rem;
     padding-top: 1.5rem;
     border-top: 1px solid var(--border);
@@ -570,6 +571,30 @@ body {
     width: 16px;
     height: 16px;
     opacity: 0.6;
+}
+
+.dl-btn.primary {
+    background: linear-gradient(135deg, var(--seo) 0%, var(--aeo) 50%, var(--geo) 100%);
+    border: none;
+    color: #000;
+    font-weight: 600;
+    padding: 0.75rem 1.25rem;
+}
+
+.dl-btn.primary:hover {
+    opacity: 0.9;
+    color: #000;
+}
+
+.dl-btn.primary svg {
+    opacity: 0.8;
+}
+
+.dl-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+    margin: 0 0.5rem;
 }
 
 /* Responsive */
@@ -749,7 +774,7 @@ body {
         <!-- SEO Analysis Details -->
         {% for page_result in result.pages %}
         {% if page_result.seo %}
-        <div class="analysis-section">
+        <div class="analysis-section open">
             <div class="analysis-header" onclick="this.parentElement.classList.toggle('open')">
                 <span class="analysis-title">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--seo)" stroke-width="2">
@@ -873,7 +898,7 @@ body {
         <!-- AEO Analysis Details -->
         {% for page_result in result.pages %}
         {% if page_result.aeo %}
-        <div class="analysis-section">
+        <div class="analysis-section open">
             <div class="analysis-header" onclick="this.parentElement.classList.toggle('open')">
                 <span class="analysis-title">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--aeo)" stroke-width="2">
@@ -1011,7 +1036,7 @@ body {
         <!-- GEO Analysis Details -->
         {% for page_result in result.pages %}
         {% if page_result.geo %}
-        <div class="analysis-section">
+        <div class="analysis-section open">
             <div class="analysis-header" onclick="this.parentElement.classList.toggle('open')">
                 <span class="analysis-title">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--geo)" stroke-width="2">
@@ -1066,6 +1091,15 @@ body {
 
     <!-- Downloads -->
     <div class="downloads-row">
+        <a href="{{ url_for('analysis.download', analysis_id=result.id, format='pdf') }}" class="dl-btn primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                <path d="M14 2v6h6"/>
+                <path d="M12 18v-6M9 15l3 3 3-3"/>
+            </svg>
+            Download Full Report (PDF)
+        </a>
+        <div class="dl-divider"></div>
         <a href="{{ url_for('analysis.download', analysis_id=result.id, format='markdown') }}" class="dl-btn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>

@@ -165,6 +165,16 @@ def download(analysis_id: str, format: str):
             headers={"Content-Disposition": f"attachment; filename={base_filename}_keywords.csv"},
         )
 
+    elif format == "pdf":
+        from app.services.report_generator import generate_pdf_report
+
+        content = generate_pdf_report(result)
+        return Response(
+            content,
+            mimetype="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={base_filename}_full_report.pdf"},
+        )
+
     return render_template("error.html", error="Invalid format"), 400
 
 
